@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useUser } from '@/context/user-context';
-import { useRouter } from 'next/navigation';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ProjectWebSocketService } from '@/lib/project-websocket';
 import { api } from '@/lib/api';
@@ -90,7 +90,8 @@ interface WorkspacePageProps {
 
 export default function WorkspacePage({ chatId }: WorkspacePageProps) {
   const { addChat, team, projects, chats, refreshProjects } = useUser();
-  const router = useRouter();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [projectId, setProjectId] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -113,12 +114,12 @@ export default function WorkspacePage({ chatId }: WorkspacePageProps) {
 
   useEffect(() => {
     if (!localStorage.getItem('token')) {
-      router.push('/');
+      navigate('/auth');
     }
     if (!chatId) {
-      router.push('/chats/new');
+      navigate('/chats/new');
     }
-  }, [chatId, router]);
+  }, [chatId, navigate]);
 
   const initializeWebSocket = async (wsProjectId: string) => {
     if (webSocketRef.current) {
@@ -292,7 +293,7 @@ export default function WorkspacePage({ chatId }: WorkspacePageProps) {
         });
         await refreshProjects();
         addChat(chat);
-        router.push(
+        navigate(
           `/chats/${chat.id}?message=${encodeURIComponent(
             JSON.stringify(userMessage)
           )}`
@@ -304,7 +305,7 @@ export default function WorkspacePage({ chatId }: WorkspacePageProps) {
           variant: 'destructive',
         });
         if (error.message.includes('credits')) {
-          router.push('/settings?buy=true');
+          navigate('/settings?buy=true');
         }
       }
     } else {
@@ -341,11 +342,9 @@ export default function WorkspacePage({ chatId }: WorkspacePageProps) {
             const message = JSON.parse(decodeURIComponent(messageParam));
             const searchParams = new URLSearchParams(window.location.search);
             searchParams.delete('message');
-            router.replace(
-              `${window.location.pathname}?${searchParams.toString()}`,
-              {
-                scroll: false,
-              }
+            navigate(
+              `${location.pathname}?${searchParams.toString()}`,
+              { replace: true }
             );
             await webSocketRef.current!.sendMessage(message);
           } catch (error) {
@@ -354,7 +353,7 @@ export default function WorkspacePage({ chatId }: WorkspacePageProps) {
         }
       }
     })();
-  }, [chatId, status, router]);
+  }, [chatId, status, navigate, location]);
 
   const handleReconnect = async () => {
     if (chatId !== 'new') {

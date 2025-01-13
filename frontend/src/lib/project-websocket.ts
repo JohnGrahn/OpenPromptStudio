@@ -1,4 +1,4 @@
-import { API_URL } from '@/lib/api';
+import { api } from '@/lib/api';
 
 interface Message {
   role: string;
@@ -34,7 +34,7 @@ export class ProjectWebSocketService {
   }
 
   connect(): void {
-    const wsUrl = API_URL;
+    const wsUrl = api.getBaseURL();
     const wsProtocol = wsUrl.startsWith('https') ? 'wss://' : 'ws://';
     const baseUrl = wsUrl.replace(/^https?:\/\//, '');
 

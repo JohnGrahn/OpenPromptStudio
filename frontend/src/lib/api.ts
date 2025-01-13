@@ -1,5 +1,5 @@
-export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const wsURL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000';
 
 export interface CreateAccountResponse {
   token: string;
@@ -49,13 +49,31 @@ export interface DeleteResponse {
   message: string;
 }
 
-class ApiClient {
+class Api {
+  private token: string | null = null;
+  private baseURL: string;
+  private wsURL: string;
+
+  constructor() {
+    this.token = localStorage.getItem('token');
+    this.baseURL = baseURL;
+    this.wsURL = wsURL;
+  }
+
+  getBaseURL() {
+    return this.baseURL;
+  }
+
+  getWSURL() {
+    return this.wsURL;
+  }
+
   private async _post<T>(endpoint: string, data?: unknown): Promise<T> {
-    const res = await fetch(`${API_URL}${endpoint}`, {
+    const res = await fetch(`${this.baseURL}${endpoint}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
+        Authorization: `Bearer ${this.token}`,
       },
       body: JSON.stringify(data),
     });
@@ -69,9 +87,9 @@ class ApiClient {
   }
 
   private async _get<T>(endpoint: string): Promise<T> {
-    const res = await fetch(`${API_URL}${endpoint}`, {
+    const res = await fetch(`${this.baseURL}${endpoint}`, {
       headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
+        Authorization: `Bearer ${this.token}`,
       },
     });
 
@@ -84,10 +102,10 @@ class ApiClient {
   }
 
   private async _delete<T>(endpoint: string): Promise<T> {
-    const res = await fetch(`${API_URL}${endpoint}`, {
+    const res = await fetch(`${this.baseURL}${endpoint}`, {
       method: 'DELETE',
       headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
+        Authorization: `Bearer ${this.token}`,
       },
     });
 
@@ -100,11 +118,11 @@ class ApiClient {
   }
 
   private async _patch<T>(endpoint: string, data: unknown): Promise<T> {
-    const res = await fetch(`${API_URL}${endpoint}`, {
+    const res = await fetch(`${this.baseURL}${endpoint}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
+        Authorization: `Bearer ${this.token}`,
       },
       body: JSON.stringify(data),
     });
@@ -129,11 +147,11 @@ class ApiClient {
 
     const searchParams = new URLSearchParams({
       ...params as Record<string, string>,
-      token: localStorage.getItem('token') || '',
+      token: this.token || '',
     });
 
     const eventSource = new EventSource(
-      `${API_URL}${endpoint}?${searchParams.toString()}`
+      `${this.baseURL}${endpoint}?${searchParams.toString()}`
     );
 
     return new Promise((resolve, reject) => {
@@ -156,6 +174,7 @@ class ApiClient {
 
   async createAccount(username: string, email: string): Promise<User> {
     const res = await this._post<CreateAccountResponse>('/api/auth/create', { username, email });
+    this.token = res.token;
     localStorage.setItem('token', res.token);
     localStorage.setItem('username', res.user.username);
     return res.user;
@@ -344,4 +363,4 @@ export async function uploadImage(
 }
 
 // Export singleton instance
-export const api = new ApiClient();
+export const api = new Api();

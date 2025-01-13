@@ -24,7 +24,12 @@ const UserContext = createContext<UserContextType>({
   teams: [],
   chats: [],
   projects: [],
-  createAccount: async () => ({ username: '' }),
+  createAccount: async () => ({ 
+    id: 0,
+    username: '',
+    email: '',
+    user_type: 'user'
+  }),
   addChat: () => {},
   refreshChats: async () => {},
   refreshProjects: async () => {},

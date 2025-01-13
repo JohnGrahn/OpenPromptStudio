@@ -1,38 +1,41 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import { Button } from '@/components/ui/button'
+import { useEffect } from 'react';
+import { Routes, Route, useNavigate, Navigate, Outlet } from 'react-router-dom';
+import AuthPage from '@/app/auth/page';
+import WorkspacePage from '@/app/chats/page';
+import WorkspaceLayout from '@/app/chats/layout';
+import ProjectWorkspace from '@/app/chats/[chatId]/page';
+import PublicChatPage from '@/app/public/chat/[shareId]/page';
+import InvitePage from '@/app/invite/[token]/page';
+import Settings from '@/app/settings/Settings';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const navigate = useNavigate();
+  console.log('App rendering');
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    console.log('Token check:', token);
+    if (!token && window.location.pathname !== '/auth') {
+      navigate('/auth');
+    }
+  }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-gray-100 py-6 flex flex-col justify-center sm:py-12">
-      <div className="relative py-3 sm:max-w-xl sm:mx-auto">
-        <div className="flex space-x-4 justify-center">
-          <a href="https://vite.dev" target="_blank">
-            <img src={viteLogo} className="h-24 hover:drop-shadow-lg" alt="Vite logo" />
-          </a>
-          <a href="https://react.dev" target="_blank">
-            <img src={reactLogo} className="h-24 animate-spin hover:drop-shadow-lg" alt="React logo" />
-          </a>
-        </div>
-        <div className="mt-8 text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-8">Vite + React + Tailwind</h1>
-          <div className="space-y-4">
-            <Button
-              onClick={() => setCount((count) => count + 1)}
-            >
-              count is {count}
-            </Button>
-            <p className="text-gray-600">
-              Edit <code className="bg-gray-200 px-2 py-1 rounded">src/App.tsx</code> and save to test HMR
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
+    <Routes>
+      <Route path="/auth" element={<AuthPage />} />
+      <Route path="/invite/:token" element={<InvitePage />} />
+      <Route path="/public/chat/:shareId" element={<PublicChatPage />} />
+      
+      <Route element={<WorkspaceLayout><Outlet /></WorkspaceLayout>}>
+        <Route path="/chats" element={<Navigate to="/chats/new" replace />} />
+        <Route path="/chats/new" element={<WorkspacePage chatId="new" />} />
+        <Route path="/chats/:chatId" element={<ProjectWorkspace />} />
+        <Route path="/settings" element={<Settings />} />
+      </Route>
+      
+      <Route path="/" element={<Navigate to="/chats/new" replace />} />
+    </Routes>
+  );
 }
 
-export default App
+export default App;
