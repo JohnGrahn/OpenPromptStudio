@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { ReactSketchCanvas } from 'react-sketch-canvas';
+import { ReactSketchCanvas, ReactSketchCanvasRef } from 'react-sketch-canvas';
 import { Eraser } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,17 +17,10 @@ interface SketchDialogProps {
   onSave: (dataUrl: string) => void;
 }
 
-interface CanvasRef {
-  exportPaths: () => Promise<any[]>;
-  exportImage: (type: string) => Promise<string>;
-  clearCanvas: () => void;
-  undo: () => void;
-}
-
 export function SketchDialog({ open, onOpenChange, onSave }: SketchDialogProps) {
   const [strokeColor, setStrokeColor] = useState('#000000');
   const [isEraser, setIsEraser] = useState(false);
-  const canvasRef = useRef<CanvasRef>(null);
+  const canvasRef = useRef<ReactSketchCanvasRef>(null);
 
   const handleSketchSave = async () => {
     if (!canvasRef.current) return;

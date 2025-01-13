@@ -20,23 +20,27 @@ interface Message {
   [key: string]: any;
 }
 
-interface ChatType {
+interface Chat {
   id: number;
   name: string;
-  messages: Message[];
-  project: {
-    id: string;
+  is_public: boolean;
+  project?: {
+    id: number;
   };
-  is_public?: boolean;
 }
 
-interface ProjectType {
-  id: string;
+interface CreateChatRequest {
+  name: string;
+  stack_pack_id: number | null;
+  project_id: string | null;
+  team_id: number | undefined;
+  seed_prompt: string;
+  is_public: boolean;
 }
 
 interface SocketData {
   for_type: string;
-  sandbox_status?: string;
+  sandbox_status?: Status;
   tunnels?: { [key: number]: string };
   file_paths?: string[];
   message?: Message;
@@ -46,6 +50,40 @@ interface SocketData {
   thinking_content?: string;
 }
 
+const statusMap = {
+  NEW_CHAT: { status: 'Ready', color: 'bg-gray-500', animate: false },
+  DISCONNECTED: {
+    status: 'Disconnected',
+    color: 'bg-gray-500',
+    animate: false,
+  },
+  OFFLINE: { status: 'Offline', color: 'bg-gray-500', animate: false },
+  BUILDING: {
+    status: 'Setting up (~1m)',
+    color: 'bg-yellow-500',
+    animate: true,
+  },
+  BUILDING_WAITING: {
+    status: 'Setting up (~3m)',
+    color: 'bg-yellow-500',
+    animate: true,
+  },
+  READY: { status: 'Ready', color: 'bg-green-500', animate: false },
+  WORKING: { status: 'Coding...', color: 'bg-green-500', animate: true },
+  WORKING_APPLYING: {
+    status: 'Applying...',
+    color: 'bg-green-500',
+    animate: true,
+  },
+  CONNECTING: {
+    status: 'Connecting...',
+    color: 'bg-yellow-500',
+    animate: true,
+  },
+} as const;
+
+type Status = keyof typeof statusMap;
+
 interface WorkspacePageProps {
   chatId: string;
 }
@@ -53,7 +91,7 @@ interface WorkspacePageProps {
 export default function WorkspacePage({ chatId }: WorkspacePageProps) {
   const { addChat, team, projects, chats, refreshProjects } = useUser();
   const router = useRouter();
-  const [projectId, setProjectId] = useState<number | null>(null);
+  const [projectId, setProjectId] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatTitle, setChatTitle] = useState<string>('New Chat');
@@ -67,7 +105,7 @@ export default function WorkspacePage({ chatId }: WorkspacePageProps) {
   );
   const [suggestedFollowUps, setSuggestedFollowUps] = useState<string[]>([]);
   const [previewHash, setPreviewHash] = useState<number>(1);
-  const [status, setStatus] = useState<string>('NEW_CHAT');
+  const [status, setStatus] = useState<Status>('NEW_CHAT');
   const webSocketRef = useRef<ProjectWebSocketService | null>(null);
   const { toast } = useToast();
   const [isMobile, setIsMobile] = useState<boolean>(false);
@@ -128,7 +166,9 @@ export default function WorkspacePage({ chatId }: WorkspacePageProps) {
         };
 
         const handleStatus = (data: SocketData) => {
-          setStatus(data.sandbox_status!);
+          if (data.sandbox_status) {
+            setStatus(data.sandbox_status);
+          }
           if (data.tunnels) {
             setProjectPreviewUrl(data.tunnels[3000]);
           }
@@ -219,15 +259,15 @@ export default function WorkspacePage({ chatId }: WorkspacePageProps) {
     };
   }, [chatId]);
 
-  const handleStackPackSelect = (stackPackId: number) => {
+  const handleStackPackSelect = (stackPackId: number | null) => {
     setProjectStackPackId(stackPackId);
   };
 
-  const handleProjectSelect = (projectId: number) => {
-    setProjectId(projectId);
+  const handleProjectSelect = (projectId: number | null) => {
+    setProjectId(projectId?.toString() ?? null);
   };
 
-  const handleSendMessage = async (message: Message) => {
+  const handleSendMessage = async (message: { content: string; images?: string[] }) => {
     if (!message.content.trim() && message.images?.length === 0) return;
 
     const userMessage: Message = {
@@ -237,14 +277,15 @@ export default function WorkspacePage({ chatId }: WorkspacePageProps) {
     };
     if (chatId === 'new') {
       try {
-        const chat: ChatType = await api.createChat({
+        const chatRequest: CreateChatRequest = {
           name: message.content,
           stack_pack_id: projectStackPackId,
           project_id: projectId,
           team_id: team?.id,
           seed_prompt: message.content,
           is_public: false,
-        });
+        };
+        const chat = await api.createChat(chatRequest);
         toast({
           title: 'Chat created',
           description: 'Setting things up...',
@@ -267,7 +308,7 @@ export default function WorkspacePage({ chatId }: WorkspacePageProps) {
         }
       }
     } else {
-      setStatus('WORKING');
+      setStatus((prevStatus) => 'WORKING' as Status);
       webSocketRef.current!.sendMessage(userMessage);
     }
   };
@@ -275,23 +316,17 @@ export default function WorkspacePage({ chatId }: WorkspacePageProps) {
   useEffect(() => {
     (async () => {
       if (chatId !== 'new') {
-        setStatus('DISCONNECTED');
+        setStatus((prevStatus) => 'DISCONNECTED' as Status);
         const chat = await api.getChat(parseInt(chatId));
         setChatTitle(chat.name);
-        const existingMessages: Message[] =
-          chat?.messages.map((m) => ({
-            role: m.role,
-            content: m.content,
-            id: m.id,
-          })) || [];
-        setMessages(existingMessages);
-        setProjectId(parseInt(chat.project.id));
+        setMessages([]);
+        setProjectId(chat.project?.id?.toString() ?? null);
       } else {
         setChatTitle('New Chat');
         setMessages([]);
         setProjectPreviewUrl(null);
         setProjectFileTree([]);
-        setStatus('NEW_CHAT');
+        setStatus((prevStatus) => 'NEW_CHAT' as Status);
       }
     })();
   }, [chatId]);
@@ -358,12 +393,10 @@ export default function WorkspacePage({ chatId }: WorkspacePageProps) {
         )}
 
         {isMobile ? (
-          // Mobile Layout: Stack vertically and show/hide based on isPreviewOpen
           <div className="flex-1">
             <div className={`h-full ${isPreviewOpen ? 'hidden' : 'block'}`}>
               <Chat
                 chat={chat}
-                connected={!!webSocketRef.current}
                 messages={messages}
                 onSendMessage={handleSendMessage}
                 projectTitle={chatTitle}
@@ -386,7 +419,7 @@ export default function WorkspacePage({ chatId }: WorkspacePageProps) {
                 projectPreviewHash={previewHash}
                 projectFileTree={projectFileTree}
                 project={projects.find(
-                  (p) => +p.id === +projectId!
+                  (p) => p.id.toString() === projectId
                 )}
                 chatId={chatId}
                 status={status}
@@ -394,7 +427,6 @@ export default function WorkspacePage({ chatId }: WorkspacePageProps) {
             </div>
           </div>
         ) : (
-          // Desktop Layout: Use Splitter
           <Splitter
             defaultLeftWidth="60%"
             minLeftWidth={400}
@@ -403,7 +435,6 @@ export default function WorkspacePage({ chatId }: WorkspacePageProps) {
           >
             <Chat
               chat={chat}
-              connected={!!webSocketRef.current}
               messages={messages}
               onSendMessage={handleSendMessage}
               projectTitle={chatTitle}
@@ -424,7 +455,7 @@ export default function WorkspacePage({ chatId }: WorkspacePageProps) {
               projectPreviewHash={previewHash}
               projectFileTree={projectFileTree}
               project={projects.find(
-                (p) => +p.id === +projectId!
+                (p) => p.id.toString() === projectId
               )}
               chatId={chatId}
               status={status}

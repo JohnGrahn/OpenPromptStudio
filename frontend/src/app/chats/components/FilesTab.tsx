@@ -60,6 +60,10 @@ interface FilesTabProps {
   project: Project;
 }
 
+interface ZipProjectResponse {
+  url: string;
+}
+
 const FileTreeNode = ({ name, children, level = 0, onSelect, isSelected }: FileTreeNodeProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const hasChildren = children && Object.keys(children).length > 0;
@@ -195,7 +199,7 @@ const FileContent = ({ selectedFile, isLoading, fileContent }: FileContentProps)
 };
 
 export function FilesTab({ projectFileTree, project }: FilesTabProps) {
-  const { team } = useUser<{ team: Team }>();
+  const { team } = useUser();
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -229,8 +233,8 @@ export function FilesTab({ projectFileTree, project }: FilesTabProps) {
     setSelectedFile(filename);
     setIsLoading(true);
     try {
-      const response = await api.getProjectFile(team.id, project.id, filename);
-      setFileContent(response.content);
+      const content = await api.getProjectFile(team.id, project.id, filename);
+      setFileContent(content);
     } catch (error) {
       console.error('Error loading file:', error);
       setFileContent('Error loading file content');
@@ -247,8 +251,8 @@ export function FilesTab({ projectFileTree, project }: FilesTabProps) {
     if (!team || !project) return;
     setIsZipping(true);
     try {
-      const { url } = await api.zipProject(team.id, project.id);
-      window.open(url, '_blank');
+      const response = await api.zipProject(team.id, project.id) as ZipProjectResponse;
+      window.open(response.url, '_blank');
     } catch (error) {
       toast({
         variant: 'destructive',

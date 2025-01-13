@@ -4,13 +4,13 @@ import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
-  FileText,
-  GitBranch,
-  Pencil,
   Loader2,
   RotateCcw,
   Trash2,
   Rocket,
+  FileText,
+  GitBranch,
+  Pencil,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,44 @@ import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { DeployTab } from './DeployTab';
+
+interface Project {
+  id: number;
+  name: string;
+  description?: string;
+  custom_instructions?: string;
+}
+
+interface Team {
+  id: number;
+}
+
+interface GitLogEntry {
+  hash: string;
+  message: string;
+  date: string;
+}
+
+interface GitLog {
+  lines: GitLogEntry[];
+}
+
+interface ProjectTabProps {
+  project: Project;
+  onSendMessage: (message: { content: string; images: any[] }) => void;
+}
+
+interface UpdateProjectData {
+  name?: string;
+  description?: string;
+  custom_instructions?: string;
+}
+
+interface DeployTabProps {
+  project: Project;
+  team: Team;
+  onSendMessage: (message: string) => void;
+}
 
 function ChatsTab({
   chats,
@@ -78,7 +116,7 @@ function HistoryTab({
   isLoadingGitLog,
   handleRestore,
 }: {
-  gitLog: any;
+  gitLog: GitLog;
   isLoadingGitLog: boolean;
   handleRestore: (hash: string) => void;
 }) {
@@ -91,7 +129,7 @@ function HistoryTab({
       ) : (
         <ScrollArea className="h-[400px]">
           <div className="space-y-2">
-            {gitLog?.lines?.map((entry) => (
+            {gitLog?.lines?.map((entry: GitLogEntry) => (
               <div key={entry.hash} className="flex items-start gap-3 text-sm">
                 <div className="text-muted-foreground font-mono">
                   {entry.hash.substring(0, 7)}
@@ -128,13 +166,7 @@ function HistoryTab({
   );
 }
 
-export function ProjectTab({
-  project,
-  onSendMessage,
-}: {
-  project: any;
-  onSendMessage: ({ content, images }: { content: string; images: any[] }) => void;
-}) {
+export function ProjectTab({ project, onSendMessage }: ProjectTabProps) {
   const { team, refreshProjects } = useUser();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
@@ -145,7 +177,7 @@ export function ProjectTab({
   const [editedInstructions, setEditedInstructions] = useState(
     project?.custom_instructions
   );
-  const [gitLog, setGitLog] = useState([]);
+  const [gitLog, setGitLog] = useState<GitLog>({ lines: [] });
   const [isLoadingGitLog, setIsLoadingGitLog] = useState(true);
   const [chats, setChats] = useState([]);
   const [isLoadingChats, setIsLoadingChats] = useState(true);
@@ -153,9 +185,10 @@ export function ProjectTab({
 
   useEffect(() => {
     const fetchGitLog = async () => {
+      if (!team?.id || !project?.id) return;
       try {
         const logData = await api.getProjectGitLog(team.id, project.id);
-        setGitLog(logData as any);
+        setGitLog(logData as GitLog);
       } catch (error) {
       } finally {
         setIsLoadingGitLog(false);
@@ -163,11 +196,9 @@ export function ProjectTab({
     };
 
     const fetchChats = async () => {
+      if (!team?.id || !project?.id) return;
       try {
-        const chatData = await api.getProjectChats(
-          team ? team.id : '',
-          project.id
-        );
+        const chatData = await api.getProjectChats(team.id, project.id);
         setChats(chatData as any);
       } catch (error) {
         console.error('Failed to fetch chats:', error);
@@ -191,12 +222,14 @@ export function ProjectTab({
   }
 
   const handleSave = async () => {
+    if (!team?.id || !project?.id) return;
     try {
-      await api.updateProject(team.id, project.id, {
+      const updateData: UpdateProjectData = {
         name: editedName,
-        project_description: editedDescription,
+        description: editedDescription,
         custom_instructions: editedInstructions,
-      });
+      };
+      await api.updateProject(team.id, project.id, updateData);
       setIsEditing(false);
       await refreshProjects();
     } catch (error) {
@@ -212,6 +245,7 @@ export function ProjectTab({
   };
 
   const handleDeleteProject = async () => {
+    if (!team?.id || !project?.id) return;
     if (
       confirm(
         'Are you sure you want to delete this project? This action cannot be undone.'
@@ -219,11 +253,8 @@ export function ProjectTab({
     ) {
       try {
         await api.deleteProject(team.id, project.id);
-        if (team) {
-          await api.deleteProject(team.id, project.id);
-          await refreshProjects();
-          navigate('/chats/new');
-        }
+        await refreshProjects();
+        navigate('/chats/new');
       } catch (error) {
         console.error('Failed to delete project:', error);
       }
@@ -231,25 +262,9 @@ export function ProjectTab({
   };
 
   const handleRestartProject = async () => {
-    if (team) {
-      try {
-        await api.restartProject(team.id, project.id);
-        await refreshProjects();
-        toast({
-          title: 'Project Restarted',
-          description:
-            'The project has been successfully restarted. Reconnect to continue.',
-        });
-      } catch (error) {
-        console.error('Failed to restart project:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to restart the project. Please try again.',
-          variant: 'destructive',
-        });
-      }
-    }
-  };
+    if (!team?.id || !project?.id) return;
+    try {
+      await api.restartProject(team.id, project.id);
       await refreshProjects();
       toast({
         title: 'Project Restarted',
@@ -360,11 +375,13 @@ export function ProjectTab({
           </TabsContent>
 
           <TabsContent value="deploy" className="mt-4">
-            <DeployTab
-              project={project}
-              team={team}
-              onSendMessage={onSendMessage}
-            />
+            {team && (
+              <DeployTab
+                project={project}
+                team={team}
+                onSendMessage={(message) => onSendMessage({ content: message, images: [] })}
+              />
+            )}
           </TabsContent>
         </Tabs>
 

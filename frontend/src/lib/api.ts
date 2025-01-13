@@ -7,12 +7,21 @@ export interface CreateAccountResponse {
 }
 
 export interface User {
+  id: number;
   username: string;
+  email: string | null;
+  user_type: string | null;
 }
 
 export interface Team {
   id: number;
   name: string;
+  credits?: number;
+}
+
+export interface TeamMember extends User {
+  user_id: number;
+  role: 'admin' | 'member';
 }
 
 export interface Chat {
@@ -27,6 +36,8 @@ export interface Chat {
 export interface Project {
   id: number;
   name: string;
+  description?: string;
+  created_at?: string;
 }
 
 export interface ImageUploadResponse {

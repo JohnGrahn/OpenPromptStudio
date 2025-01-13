@@ -44,7 +44,7 @@ export function DeployTab({ project, team, onSendMessage }: DeployTabProps) {
 
   useEffect(() => {
     const fetchGithubDeployStatus = async () => {
-      const status = await api.deployStatusGithub(team.id, project.id);
+      const status = await api.deployStatusGithub(team.id, project.id) as DeployStatus;
       setStatus(status);
     };
     fetchGithubDeployStatus();
@@ -76,7 +76,7 @@ export function DeployTab({ project, team, onSendMessage }: DeployTabProps) {
             }
             if (data.done) {
               api.deployStatusGithub(team.id, project.id).then((status) => {
-                setStatus(status);
+                setStatus(status as DeployStatus);
                 toast({
                   title: 'Integration Complete',
                   description: 'Your project has been integrated with GitHub.',
@@ -168,7 +168,7 @@ export function DeployTab({ project, team, onSendMessage }: DeployTabProps) {
           open={showHostingGuide}
           onOpenChange={setShowHostingGuide}
           repoName={status.repo_name}
-          onSendMessage={onSendMessage}
+          onSendMessage={(message) => onSendMessage(message.content)}
         />
       </>
     );

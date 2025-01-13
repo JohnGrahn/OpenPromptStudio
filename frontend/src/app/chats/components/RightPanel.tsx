@@ -97,15 +97,29 @@ export function RightPanel({
         {selectedTab === 'preview' ? (
           <PreviewTab
             projectPreviewUrl={projectPreviewUrl}
-            projectPreviewHash={projectPreviewHash}
+            projectPreviewHash={projectPreviewHash.toString()}
             projectPreviewPath={projectPreviewPath}
             setProjectPreviewPath={setProjectPreviewPath}
-            status={status}
           />
-        ) : selectedTab === 'editor' ? (
+        ) : selectedTab === 'editor' && project ? (
           <FilesTab projectFileTree={projectFileTree} project={project} />
+        ) : selectedTab === 'editor' ? (
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            No project selected
+          </div>
+        ) : project ? (
+          <ProjectTab 
+            project={project} 
+            onSendMessage={({ content, images }) => onSendMessage({ 
+              role: 'user',
+              content,
+              images: images || [],
+            })} 
+          />
         ) : (
-          <ProjectTab project={project} onSendMessage={onSendMessage} />
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            No project selected
+          </div>
         )}
       </div>
     </div>
