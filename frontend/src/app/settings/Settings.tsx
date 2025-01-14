@@ -260,7 +260,7 @@ function SettingsContent() {
     window.location.href = `${
       process.env.VITE_STRIPE_LINK ||
       'https://buy.stripe.com/'
-    }?client_reference_id=promptstack___team_${team.id}`;
+    }?client_reference_id=openprompt___team_${team.id}`;
   };
 
   const handleCancel = () => {

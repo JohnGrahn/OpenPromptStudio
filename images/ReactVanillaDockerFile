@@ -1,0 +1,39 @@
+FROM python:3.11
+
+WORKDIR /
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    curl \
+    wget \
+    zip \
+    unzip && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install bun
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:${PATH}"
+
+RUN bun --version
+
+# Create React app with Vite
+RUN bunx create-vite@latest frontend --template react-ts && \
+    cd frontend && \
+    bun install && \
+    bun add -d @types/node && \
+    bun add tailwindcss postcss autoprefixer && \
+    bunx tailwindcss init -p && \
+    bun run build
+
+# Configure Tailwind
+RUN echo 'import { defineConfig } from "vite"\nimport react from "@vitejs/plugin-react"\n\nexport default defineConfig({\n  plugins: [react()],\n  server: {\n    port: 3000,\n    host: "0.0.0.0"\n  }\n})' > /frontend/vite.config.ts && \
+    echo '/** @type {import("tailwindcss").Config} */\nexport default {\n  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],\n  theme: {\n    extend: {},\n  },\n  plugins: [],\n}' > /frontend/tailwind.config.js && \
+    echo '@tailwind base;\n@tailwind components;\n@tailwind utilities;' > /frontend/src/index.css
+
+RUN ls -asl /frontend && \
+    ls -asl /frontend/public && \
+    ls -asl /frontend/src && \
+    cat /frontend/package.json
+
+EXPOSE 3000

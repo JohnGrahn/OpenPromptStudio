@@ -17,7 +17,7 @@ export default function AuthPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const generateTempEmail = (username: string): string => {
-    return `${username}@prompt-stack.sshh.io`;
+    return `${username}@openpromptstudio.com`;
   };
 
   const isValidEmail = (email: string): boolean => {

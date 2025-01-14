@@ -1,0 +1,45 @@
+FROM python:3.11
+
+WORKDIR /
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    curl \
+    wget \
+    zip \
+    unzip && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install bun
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:${PATH}"
+
+RUN bun --version
+
+# Create React app with Vite
+RUN bunx create-vite@latest frontend --template react-ts && \
+    cd frontend && \
+    bun install && \
+    bun add -d @types/node && \
+    bun add tailwindcss postcss autoprefixer && \
+    bun add pixi.js @pixi/mesh-extras && \
+    bunx tailwindcss init -p && \
+    bun run build
+
+# Configure project
+RUN echo 'import { defineConfig } from "vite"\nimport react from "@vitejs/plugin-react"\nimport path from "path"\n\nexport default defineConfig({\n  plugins: [react()],\n  server: {\n    port: 3000,\n    host: "0.0.0.0"\n  },\n  resolve: {\n    alias: {\n      "@": path.resolve(__dirname, "./src"),\n    },\n  },\n})' > /frontend/vite.config.ts && \
+    echo '/** @type {import("tailwindcss").Config} */\nexport default {\n  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],\n  theme: {\n    extend: {},\n  },\n  plugins: [],\n}' > /frontend/tailwind.config.js && \
+    echo '@tailwind base;\n@tailwind components;\n@tailwind utilities;' > /frontend/src/index.css
+
+# Add Pixi.js setup files
+RUN mkdir -p /frontend/src/pixi && \
+    echo 'import { Application, Assets, Graphics, MeshRope, Point } from "pixi.js";\n\nexport class PixiApp {\n  private app: Application;\n  private points: Point[] = [];\n  private strip: MeshRope | null = null;\n  private graphics: Graphics | null = null;\n  private count: number = 0;\n  private readonly ropeLength: number = 45;\n\n  constructor() {\n    this.app = new Application();\n  }\n\n  async init(): Promise<void> {\n    // Initialize the application\n    await this.app.init({ \n      resizeTo: window,\n      backgroundColor: 0x000000 \n    });\n    document.body.appendChild(this.app.canvas);\n\n    // Load the snake texture\n    const texture = await Assets.load("https://pixijs.com/assets/snake.png");\n\n    // Build rope points\n    for (let i = 0; i < 25; i++) {\n      this.points.push(new Point(i * this.ropeLength, 0));\n    }\n\n    // Create the snake MeshRope\n    this.strip = new MeshRope({ texture, points: this.points });\n    this.strip.x = -40;\n    this.strip.y = 300;\n    this.app.stage.addChild(this.strip);\n\n    // Setup graphics for rendering points\n    this.graphics = new Graphics();\n    this.graphics.x = this.strip.x;\n    this.graphics.y = this.strip.y;\n    this.app.stage.addChild(this.graphics);\n\n    // Start animation loop\n    this.app.ticker.add(() => this.update());\n  }\n\n  private update(): void {\n    this.count += 0.1;\n\n    // Animate snake points\n    for (let i = 0; i < this.points.length; i++) {\n      this.points[i].y = Math.sin(i * 0.5 + this.count) * 30;\n      this.points[i].x = i * this.ropeLength + Math.cos(i * 0.3 + this.count) * 20;\n    }\n    this.renderPoints();\n  }\n\n  private renderPoints(): void {\n    if (!this.graphics) return;\n\n    this.graphics.clear();\n    this.graphics.moveTo(this.points[0].x, this.points[0].y);\n\n    // Draw lines between points\n    for (let i = 1; i < this.points.length; i++) {\n      this.graphics.lineTo(this.points[i].x, this.points[i].y);\n      this.graphics.stroke({ width: 2, color: 0xffc2c2 });\n    }\n\n    // Draw circles at points\n    for (let i = 1; i < this.points.length; i++) {\n      this.graphics.drawCircle(this.points[i].x, this.points[i].y, 10);\n      this.graphics.fill({ color: 0xff0022 });\n      this.graphics.stroke({ width: 2, color: 0xffc2c2 });\n    }\n  }\n\n  public cleanup(): void {\n    this.app.destroy();\n  }\n}' > /frontend/src/pixi/app.ts && \
+    echo 'import { useEffect, useRef } from "react";\nimport { PixiApp } from "./pixi/app";\n\nexport default function App() {\n  const pixiAppRef = useRef<PixiApp | null>(null);\n\n  useEffect(() => {\n    // Initialize Pixi.js app\n    const app = new PixiApp();\n    app.init();\n    pixiAppRef.current = app;\n\n    // Cleanup on unmount\n    return () => {\n      if (pixiAppRef.current) {\n        pixiAppRef.current.cleanup();\n      }\n    };\n  }, []);\n\n  return (\n    <main className="w-screen h-screen bg-black">\n      {/* Pixi.js will automatically append canvas to body */}\n    </main>\n  );\n}' > /frontend/src/App.tsx
+
+RUN ls -asl /frontend && \
+    ls -asl /frontend/public && \
+    ls -asl /frontend/src && \
+    cat /frontend/package.json
+
+EXPOSE 3000

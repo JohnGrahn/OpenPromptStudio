@@ -1,0 +1,38 @@
+FROM python:3.11
+
+WORKDIR /
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    curl \
+    wget \
+    zip \
+    unzip && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install bun
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:${PATH}"
+
+RUN bun --version
+
+# Create Vue project with Vite
+RUN bunx create-vue@latest frontend --typescript --jsx --router --with-tests --eslint-with-prettier --force && \
+    cd frontend && \
+    bun install && \
+    bun add -d @types/node && \
+    bun add tailwindcss postcss autoprefixer && \
+    bunx tailwindcss init -p && \
+    bun run build
+
+# Configure project
+RUN echo '/** @type {import("tailwindcss").Config} */\nexport default {\n  content: [\n    "./index.html",\n    "./src/**/*.{vue,js,ts,jsx,tsx}",\n  ],\n  theme: {\n    extend: {},\n  },\n  plugins: [],\n}' > /frontend/tailwind.config.js && \
+    echo '@tailwind base;\n@tailwind components;\n@tailwind utilities;' > /frontend/src/assets/main.css
+
+RUN ls -asl /frontend && \
+    ls -asl /frontend/src && \
+    ls -asl /frontend/src/components && \
+    cat /frontend/package.json
+
+EXPOSE 3000

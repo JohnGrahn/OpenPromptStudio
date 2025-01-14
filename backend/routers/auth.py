@@ -23,7 +23,7 @@ _FORBIDDEN_USERNAME_PHRASES = [
     "moderator",
     "support",
     "security",
-    "promptstack",
+    "openprompt",
 ]
 
 
