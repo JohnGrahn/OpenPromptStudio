@@ -1,0 +1,19 @@
+## Docker Images
+
+The project uses custom Docker images for different frontend stacks. These images are hosted on GitHub Container Registry.
+
+To build and push the images:
+
+1. Ensure you have Podman installed
+2. Create a GitHub Personal Access Token with `write:packages` permission
+3. Run the build script:
+   ```bash
+   cd images
+   ./build_and_push.sh
+   ```
+
+Available images:
+- `ghcr.io/johngrahn/openpromptstudio/react-vanilla:latest`
+- `ghcr.io/johngrahn/openpromptstudio/react-shadcn:latest`
+- `ghcr.io/johngrahn/openpromptstudio/react-pixi:latest`
+- `ghcr.io/johngrahn/openpromptstudio/vue-vanilla:latest`
