@@ -1,42 +1,50 @@
-from fastapi import APIRouter, Depends, HTTPException
-import aioboto3
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi.responses import FileResponse
+import os
 import uuid
+import shutil
+from pathlib import Path
 
-from config import BUCKET_NAME
-from db.database import get_aws_client
 from schemas.models import ImageUploadSignURL
 from db.models import User
 from routers.auth import get_current_user_from_token
 
 router = APIRouter(prefix="/api/uploads", tags=["uploads"])
 
+# Create uploads directory if it doesn't exist
+UPLOADS_DIR = Path("/app/uploads")
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
-@router.post("/image-upload-url")
-async def generate_image_upload_url(
-    data: ImageUploadSignURL,
+@router.post("/upload-image")
+async def upload_image(
+    file: UploadFile = File(...),
     current_user: User = Depends(get_current_user_from_token),
-    aws_client: aioboto3.Session = Depends(get_aws_client),
 ):
     if not current_user:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    file_key = f"image_uploads/{uuid.uuid4()}"
+    file_ext = os.path.splitext(file.filename)[1]
+    file_key = f"image_uploads/{uuid.uuid4()}{file_ext}"
+    file_path = UPLOADS_DIR / file_key
+
     try:
-        async with aws_client.client("s3") as s3:
-            presigned_url = await s3.generate_presigned_url(
-                "put_object",
-                Params={
-                    "Bucket": BUCKET_NAME,
-                    "Key": file_key,
-                    "ContentType": data.content_type,
-                },
-                ExpiresIn=3600,
-            )
+        # Ensure the parent directory exists
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Save uploaded file
+        with file_path.open("wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
     return {
-        "upload_url": presigned_url,
         "file_key": file_key,
-        "url": f"https://{BUCKET_NAME}.s3.amazonaws.com/{file_key}",
+        "url": f"/api/uploads/images/{file_key}",
     }
+
+@router.get("/images/{file_key:path}")
+async def get_image(file_key: str):
+    file_path = UPLOADS_DIR / file_key
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Image not found")
+    return FileResponse(file_path)

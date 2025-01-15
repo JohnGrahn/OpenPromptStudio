@@ -5,7 +5,7 @@ from sqlalchemy.orm import joinedload
 import secrets
 
 from db.database import get_db
-from db.models import User, Chat, Team, Project, Stack
+from db.models import User, Chat, Team, Project, Stack, TeamMember
 from db.queries import get_chat_for_user
 from agents.prompts import name_chat, pick_stack
 from sandbox.sandbox import DevSandbox
@@ -23,7 +23,9 @@ async def get_user_chats(
 ):
     return (
         db.query(Chat)
-        .filter(Chat.user_id == current_user.id)
+        .join(Team, Chat.team_id == Team.id)
+        .join(TeamMember, Team.id == TeamMember.team_id)
+        .filter(TeamMember.user_id == current_user.id)
         .options(joinedload(Chat.messages), joinedload(Chat.project))
         .all()
     )
@@ -49,16 +51,14 @@ async def get_chat(
 
 
 async def _pick_stack(db: Session, seed_prompt: str) -> Stack:
-    if "p5" in seed_prompt.lower():
-        title = "p5.js"
-    elif "pixi" in seed_prompt.lower():
-        title = "Pixi.js"
+    if "pixi" in seed_prompt.lower():
+        title = "React Pixi"
+    elif "shadcn" in seed_prompt.lower():
+        title = "React Shadcn"
+    elif "vue" in seed_prompt.lower():
+        title = "Vue"
     else:
-        title = await pick_stack(
-            seed_prompt,
-            [s.title for s in db.query(Stack).all()],
-            default="Next.js Shadcn",
-        )
+        title = "React"  # Default to vanilla React
     return db.query(Stack).filter(Stack.title == title).first()
 
 
@@ -117,6 +117,7 @@ async def create_chat(
         name=chat_name,
         project_id=project_id,
         user_id=current_user.id,
+        team_id=team_id,
     )
 
     if team.credits < CREDITS_CHAT_COST:

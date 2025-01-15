@@ -27,41 +27,13 @@ import {
 import { api } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { useShareChat } from '@/hooks/use-share-chat';
+import type { User, Team, Chat, Project } from '@/lib/api';
 
-interface Chat {
-  id: number;
-  name: string;
-  is_public: boolean;
-  project?: {
-    id: number;
-  };
-}
-
-interface Project {
-  id: number;
-  name: string;
-  created_at: string;
-}
-
-interface User {
-  username: string;
-}
-
-interface Team {
-  name: string;
-}
+interface SidebarProps {}
 
 export const Sidebar = () => {
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
-  const { user, chats, refreshChats, refreshProjects, team, projects } =
-    useUser<{
-      user: User;
-      chats: Chat[];
-      team: Team | null;
-      projects: Project[];
-      refreshChats: () => Promise<void>;
-      refreshProjects: () => Promise<void>;
-    }>();
+  const { user, chats, refreshChats, refreshProjects, team, projects } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
   const [editingChatId, setEditingChatId] = React.useState<number | null>(null);
@@ -145,7 +117,7 @@ export const Sidebar = () => {
   );
 
   const projectIdToChats: Record<string, Chat[]> = chats.reduce((acc: Record<string, Chat[]>, chat: Chat) => {
-    const projectId = chat.project?.id?.toString();
+    const projectId = chat.project?.id?.toString() || '';
     if (!acc[projectId]) {
       acc[projectId] = [];
     }
@@ -155,8 +127,8 @@ export const Sidebar = () => {
 
   const sortedProjectIdToChats = Object.entries(projectIdToChats).sort(
     ([projectIdA], [projectIdB]) => {
-      const projectA = projects.find((p: Project) => p.id === Number(projectIdB));
-      const projectB = projects.find((p: Project) => p.id === Number(projectIdA));
+      const projectA = projects.find((p) => p.id === Number(projectIdB));
+      const projectB = projects.find((p) => p.id === Number(projectIdA));
       return (projectA?.created_at ? new Date(projectA.created_at).getTime() : 0) -
              (projectB?.created_at ? new Date(projectB.created_at).getTime() : 0);
     }
@@ -192,7 +164,7 @@ export const Sidebar = () => {
               <MessageCircle className="mr-2 h-4 w-4" />
               Feedback
             </Button>
-            {process.env.NEXT_PUBLIC_HIDE_BLOG_BUTTON !== 'true' && (
+            {false && (
               <Button
                 variant="outline"
                 className="w-full justify-start mt-2"
@@ -292,24 +264,41 @@ export const Sidebar = () => {
               ))}
             </div>
           </div>
-          <div className="p-2 border-t">
-            <div
-              className="flex items-center justify-between hover:bg-accent rounded-md p-1.5 cursor-pointer"
-              onClick={() => navigate('/settings')}
-            >
-              <div className="flex flex-col gap-0.5 min-w-0">
-                <div className="flex items-center space-x-3 min-w-0">
-                  <Avatar>
-                    <AvatarImage src="" />
-                    <AvatarFallback>{user.username[0]}</AvatarFallback>
-                  </Avatar>
-                  <span className="font-medium truncate">{user.username}</span>
-                </div>
-                {team && (
-                  <span className="text-sm text-muted-foreground ml-[3.25rem] truncate">
-                    {team.name}
-                  </span>
-                )}
+          <div className="flex items-center p-3 border-t">
+            <Avatar className="h-8 w-8">
+              <AvatarImage
+                src={`https://api.dicebear.com/7.x/initials/svg?seed=${
+                  user?.username || ''
+                }`}
+                alt={user?.username || ''}
+              />
+              <AvatarFallback>
+                {user?.username?.charAt(0).toUpperCase() || '?'}
+              </AvatarFallback>
+            </Avatar>
+            <div className="ml-2 flex-1">
+              <div className="text-sm font-medium">{user?.username || ''}</div>
+              <div className="text-xs text-muted-foreground">
+                {team?.name || 'No Team'}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center p-3 border-t">
+            <Avatar className="h-8 w-8">
+              <AvatarImage
+                src={`https://api.dicebear.com/7.x/initials/svg?seed=${
+                  user?.username || ''
+                }`}
+                alt={user?.username || ''}
+              />
+              <AvatarFallback>
+                {user?.username?.charAt(0).toUpperCase() || '?'}
+              </AvatarFallback>
+            </Avatar>
+            <div className="ml-2 flex-1">
+              <div className="text-sm font-medium">{user?.username || ''}</div>
+              <div className="text-xs text-muted-foreground">
+                {team?.name || 'No Team'}
               </div>
             </div>
           </div>

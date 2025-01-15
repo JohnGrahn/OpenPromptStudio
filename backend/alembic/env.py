@@ -1,11 +1,13 @@
-import sys
 from alembic import context
 from logging.config import fileConfig
+import os
+import sys
 
-sys.path.append("..")
+# Add parent directory to path
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from backend.db.models import Base
-from backend.config import DATABASE_URL
+from db.models import Base
+from config import DATABASE_URL
 
 # this is the Alembic Config object
 config = context.config

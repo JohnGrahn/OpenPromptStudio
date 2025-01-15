@@ -78,12 +78,23 @@ class Api {
       body: JSON.stringify(data),
     });
 
+    const responseText = await res.text();
     if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.detail || `API error: ${res.statusText}`);
+      let errorMessage: string;
+      try {
+        const errorData = JSON.parse(responseText);
+        errorMessage = errorData.detail || `API error: ${res.statusText}`;
+      } catch {
+        errorMessage = responseText || `API error: ${res.statusText}`;
+      }
+      throw new Error(errorMessage);
     }
 
-    return res.json();
+    try {
+      return JSON.parse(responseText);
+    } catch {
+      throw new Error('Invalid JSON response from server');
+    }
   }
 
   private async _get<T>(endpoint: string): Promise<T> {
@@ -93,12 +104,23 @@ class Api {
       },
     });
 
+    const responseText = await res.text();
     if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.detail || `API error: ${res.statusText}`);
+      let errorMessage: string;
+      try {
+        const errorData = JSON.parse(responseText);
+        errorMessage = errorData.detail || `API error: ${res.statusText}`;
+      } catch {
+        errorMessage = responseText || `API error: ${res.statusText}`;
+      }
+      throw new Error(errorMessage);
     }
 
-    return res.json();
+    try {
+      return JSON.parse(responseText);
+    } catch {
+      throw new Error('Invalid JSON response from server');
+    }
   }
 
   private async _delete<T>(endpoint: string): Promise<T> {
@@ -109,12 +131,23 @@ class Api {
       },
     });
 
+    const responseText = await res.text();
     if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.detail || `API error: ${res.statusText}`);
+      let errorMessage: string;
+      try {
+        const errorData = JSON.parse(responseText);
+        errorMessage = errorData.detail || `API error: ${res.statusText}`;
+      } catch {
+        errorMessage = responseText || `API error: ${res.statusText}`;
+      }
+      throw new Error(errorMessage);
     }
 
-    return res.json();
+    try {
+      return JSON.parse(responseText);
+    } catch {
+      throw new Error('Invalid JSON response from server');
+    }
   }
 
   private async _patch<T>(endpoint: string, data: unknown): Promise<T> {
@@ -127,12 +160,23 @@ class Api {
       body: JSON.stringify(data),
     });
 
+    const responseText = await res.text();
     if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.detail || `API error: ${res.statusText}`);
+      let errorMessage: string;
+      try {
+        const errorData = JSON.parse(responseText);
+        errorMessage = errorData.detail || `API error: ${res.statusText}`;
+      } catch {
+        errorMessage = responseText || `API error: ${res.statusText}`;
+      }
+      throw new Error(errorMessage);
     }
 
-    return res.json();
+    try {
+      return JSON.parse(responseText);
+    } catch {
+      throw new Error('Invalid JSON response from server');
+    }
   }
 
   private async _get_stream(

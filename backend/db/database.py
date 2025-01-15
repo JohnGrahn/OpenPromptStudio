@@ -1,16 +1,12 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import aioboto3
 
 from config import (
     DATABASE_URL,
     DB_POOL_SIZE,
     DB_MAX_OVERFLOW,
     DB_POOL_RECYCLE,
-    AWS_ACCESS_KEY_ID,
-    AWS_SECRET_ACCESS_KEY,
-    AWS_REGION,
     RUN_STACK_SYNC_ON_START,
 )
 
@@ -62,7 +58,6 @@ def _try_init_stacks():
 
 
 def init_db():
-    # Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     if RUN_STACK_SYNC_ON_START:
         _try_init_stacks()
@@ -74,12 +69,3 @@ def get_db():
         yield db
     finally:
         db.close()
-
-
-def get_aws_client():
-    client = aioboto3.Session(
-        aws_access_key_id=AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-        region_name=AWS_REGION,
-    )
-    yield client

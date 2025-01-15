@@ -14,7 +14,7 @@ from routers import (
     chats,
     uploads,
     mocks,
-    stripe,
+    # stripe,
 )
 from config import RUN_PERIODIC_CLEANUP
 
@@ -70,7 +70,7 @@ app.include_router(teams.router)
 app.include_router(chats.router)
 app.include_router(uploads.router)
 app.include_router(mocks.router)
-app.include_router(stripe.router)
+# app.include_router(stripe.router)
 
 if __name__ == "__main__":
     init_db()

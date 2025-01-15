@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from jose import jwt, JWTError
 
 from db.database import get_db
-from db.models import User, Team, TeamMember, TeamRole
+from db.models import User, Team, TeamMember, TeamRole, UserType
 from schemas.models import UserCreate, UserResponse, AuthResponse, UserUpdate
 from config import JWT_SECRET_KEY, CREDITS_DEFAULT, JWT_EXPIRATION_DAYS
 
@@ -38,19 +38,34 @@ def _validate_username(username: str) -> None:
 async def get_current_user_from_token(
     token: str = Security(API_KEY_HEADER), db: Session = Depends(get_db)
 ):
+    if not token:
+        raise HTTPException(status_code=401, detail="No token provided")
+        
     try:
-        token = token.replace("Bearer ", "")
-        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=["HS256"])
+        # Remove 'Bearer ' prefix if present
+        if token.startswith("Bearer "):
+            token = token[7:]
+        
+        # Try to decode the token
+        try:
+            payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=["HS256"])
+        except JWTError as e:
+            raise HTTPException(status_code=401, detail=f"Invalid token format: {str(e)}")
+            
+        # Extract username from token
         username = payload.get("sub")
         if username is None:
-            raise HTTPException(status_code=401, detail="Invalid token")
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-    user = db.query(User).filter(User.username == username).first()
-    if user is None:
-        raise HTTPException(status_code=401, detail="User not found")
-    return user
+            raise HTTPException(status_code=401, detail="Token missing username claim")
+            
+        # Find user in database
+        user = db.query(User).filter(User.username == username).first()
+        if user is None:
+            raise HTTPException(status_code=401, detail=f"User {username} not found")
+            
+        return user
+        
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Authentication error: {str(e)}")
 
 
 @router.post("/create", response_model=AuthResponse)
@@ -77,19 +92,29 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
 
     # Start transaction
     try:
-        # Create user
-        new_user = User(username=user.username, email=user.email)
+        # Create user with default user_type
+        new_user = User(
+            username=user.username,
+            email=user.email,
+            user_type=UserType.USER
+        )
         db.add(new_user)
         db.flush()  # Flush to get the user ID
 
         # Create personal team
-        personal_team = Team(name=f"{user.username}'s Team", credits=CREDITS_DEFAULT)
+        personal_team = Team(
+            name=f"{user.username}'s Team",
+            credits=CREDITS_DEFAULT,
+            created_at=datetime.now()
+        )
         db.add(personal_team)
         db.flush()
 
         # Add user as team admin
         team_member = TeamMember(
-            team_id=personal_team.id, user_id=new_user.id, role=TeamRole.ADMIN
+            team_id=personal_team.id,
+            user_id=new_user.id,
+            role=TeamRole.ADMIN
         )
         db.add(team_member)
 

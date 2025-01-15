@@ -27,7 +27,7 @@ DB_MAX_OVERFLOW = _int_env("DB_MAX_OVERFLOW", 50)
 DB_POOL_RECYCLE = _int_env("DB_POOL_RECYCLE", 1800)  # 30 minutes in seconds
 
 # Secrets configuration
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", secrets.token_urlsafe(32))
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "development_secret_key_do_not_use_in_production")
 JWT_EXPIRATION_DAYS = _int_env(
     "JWT_EXPIRATION_DAYS", 10_000
 )  # We don't have a sign back in feature

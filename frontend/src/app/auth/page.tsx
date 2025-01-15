@@ -42,9 +42,12 @@ export default function AuthPage() {
       });
       navigate('/chats/new');
     } catch (error) {
+      console.error('Account creation error:', error);
       toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'An error occurred',
+        title: 'Error Creating Account',
+        description: error instanceof Error 
+          ? error.message
+          : 'An unexpected error occurred while creating your account. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -55,7 +58,7 @@ export default function AuthPage() {
   const handleCreateRegularAccount = async (): Promise<void> => {
     if (!email.trim() || !isValidEmail(email)) {
       toast({
-        title: 'Invalid Input',
+        title: 'Invalid Email',
         description: 'Please enter a valid email address',
         variant: 'destructive',
       });
@@ -72,9 +75,12 @@ export default function AuthPage() {
       });
       navigate('/chats/new');
     } catch (error) {
+      console.error('Account creation error:', error);
       toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'An error occurred',
+        title: 'Error Creating Account',
+        description: error instanceof Error 
+          ? error.message
+          : 'An unexpected error occurred while creating your account. Please try again.',
         variant: 'destructive',
       });
     } finally {
