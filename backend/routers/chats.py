@@ -51,15 +51,26 @@ async def get_chat(
 
 
 async def _pick_stack(db: Session, seed_prompt: str) -> Stack:
-    if "pixi" in seed_prompt.lower():
+    # Convert seed prompt to lowercase for case-insensitive matching
+    seed_prompt = seed_prompt.lower()
+    
+    # Try to match based on keywords
+    if "pixi" in seed_prompt or "game" in seed_prompt or "animation" in seed_prompt:
         title = "React Pixi"
-    elif "shadcn" in seed_prompt.lower():
+    elif "shadcn" in seed_prompt or "ui" in seed_prompt or "components" in seed_prompt:
         title = "React Shadcn"
-    elif "vue" in seed_prompt.lower():
+    elif "vue" in seed_prompt:
         title = "Vue"
     else:
         title = "React"  # Default to vanilla React
-    return db.query(Stack).filter(Stack.title == title).first()
+
+    # Get the stack from database
+    stack = db.query(Stack).filter(Stack.title == title).first()
+    if stack is None:
+        # If requested stack not found, fall back to any available stack
+        stack = db.query(Stack).first()
+        
+    return stack
 
 
 @router.post("", response_model=ChatResponse)

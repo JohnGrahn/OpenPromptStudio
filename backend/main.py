@@ -40,6 +40,7 @@ async def periodic_task():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    init_db()  # Initialize database and sync stacks
     task = asyncio.create_task(periodic_task())
     yield
     task.cancel()
@@ -55,6 +56,8 @@ app.add_middleware(
         "http://localhost:3001",
         "http://localhost:8000",
         "https://*.up.railway.app",
+        "ws://localhost:8000",
+        "wss://localhost:8000",
     ],
     allow_credentials=True,
     allow_methods=["*"],

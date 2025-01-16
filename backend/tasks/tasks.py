@@ -54,7 +54,7 @@ async def maintain_prepared_sandboxes(db: Session):
             try:
                 sandbox, sandbox_id = await DevSandbox.prepare_sandbox(stack)
                 prepared = PreparedSandbox(
-                    sandbox_id=sandbox_id,
+                    modal_sandbox_id=sandbox_id,
                     stack_id=stack.id,
                     created_at=datetime.utcnow()
                 )

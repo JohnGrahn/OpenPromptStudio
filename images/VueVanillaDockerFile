@@ -18,21 +18,21 @@ ENV PATH="/root/.bun/bin:${PATH}"
 RUN bun --version
 
 # Create Vue project with Vite
-RUN bunx create-vue@latest frontend --typescript --jsx --router --with-tests --eslint-with-prettier --force && \
+RUN bunx create-vue@latest frontend --typescript --router --with-tests --eslint-with-prettier --force && \
     cd frontend && \
     bun install && \
     bun add -d @types/node && \
     bun add tailwindcss postcss autoprefixer && \
-    bunx tailwindcss init -p && \
-    bun run build
+    bunx tailwindcss init -p
 
 # Configure project
 RUN echo '/** @type {import("tailwindcss").Config} */\nexport default {\n  content: [\n    "./index.html",\n    "./src/**/*.{vue,js,ts,jsx,tsx}",\n  ],\n  theme: {\n    extend: {},\n  },\n  plugins: [],\n}' > /frontend/tailwind.config.js && \
     echo '@tailwind base;\n@tailwind components;\n@tailwind utilities;' > /frontend/src/assets/main.css
 
-RUN ls -asl /frontend && \
-    ls -asl /frontend/src && \
-    ls -asl /frontend/src/components && \
-    cat /frontend/package.json
+# Configure TypeScript for Vue
+RUN cd frontend && \
+    echo '{\n  "extends": "@vue/tsconfig/tsconfig.dom.json",\n  "include": ["env.d.ts", "src/**/*", "src/**/*.vue"],\n  "exclude": ["src/**/__tests__/*"],\n  "compilerOptions": {\n    "composite": true,\n    "baseUrl": ".",\n    "paths": {\n      "@/*": ["./src/*"]\n    }\n  }\n}' > /frontend/tsconfig.json && \
+    echo 'declare module "*.vue" {\n  import type { DefineComponent } from "vue"\n  const component: DefineComponent<{}, {}, any>\n  export default component\n}' > /frontend/src/env.d.ts && \
+    bun run build
 
 EXPOSE 3000

@@ -1,12 +1,14 @@
+import os
 import asyncio
 import base64
 import datetime
-import os
 import shutil
 import uuid
 from typing import List, Optional, Tuple, AsyncGenerator, Union
 from asyncio import Lock
 from functools import lru_cache
+import subprocess
+import aiofiles
 
 from db.database import get_db
 from db.models import Project, PreparedSandbox, Stack
@@ -181,6 +183,8 @@ class DevSandbox:
 
                 # Initialize sandbox
                 sandbox = cls(project_id, sandbox_id)
+                sandbox_path = _get_sandbox_path(sandbox_id)
+                os.makedirs(sandbox_path, exist_ok=True)
                 await sandbox.run_command("git init")
                 return sandbox
             
@@ -192,6 +196,10 @@ class DevSandbox:
     async def prepare_sandbox(cls, stack: Stack) -> Tuple["DevSandbox", str]:
         sandbox_id = _unique_id()
         sandbox = cls(-1, sandbox_id)  # Use -1 as project_id for prepared sandboxes
+        
+        # Create sandbox directory
+        sandbox_path = _get_sandbox_path(sandbox_id)
+        os.makedirs(sandbox_path, exist_ok=True)
         
         # Initialize sandbox with stack
         await sandbox.run_command("git init")

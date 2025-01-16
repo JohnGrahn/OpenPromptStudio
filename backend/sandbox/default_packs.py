@@ -82,7 +82,7 @@ PACKS = [
     StackPack(
         title="React",
         description="A simple React App with TypeScript and Vite. Best for starting from scratch with minimal components.",
-        from_registry="TODO_REACT_VANILLA_IMAGE",  # TODO: Add actual image path after building
+        from_registry="ghcr.io/johngrahn/openpromptstudio/react-vanilla:latest",
         sandbox_init_cmd=_SETUP_COMMON_CMD,
         sandbox_start_cmd=_START_REACT_CMD,
         prompt="""
@@ -124,7 +124,7 @@ Code Tips:
     StackPack(
         title="React Shadcn",
         description="A React app with Shadcn UI and TypeScript. Best for building a modern web app with a modern UI.",
-        from_registry="TODO_REACT_SHADCN_IMAGE",  # TODO: Add actual image path after building
+        from_registry="ghcr.io/johngrahn/openpromptstudio/react-shadcn:latest",
         sandbox_init_cmd=_SETUP_COMMON_CMD,
         sandbox_start_cmd=_START_REACT_CMD,
         prompt="""
@@ -171,7 +171,7 @@ Code Tips:
     StackPack(
         title="React Pixi",
         description="A React app with Pixi.js and TypeScript. Best for games, animations, and interactive graphics.",
-        from_registry="TODO_REACT_PIXI_IMAGE",  # TODO: Add actual image path after building
+        from_registry="ghcr.io/johngrahn/openpromptstudio/react-pixi:latest",
         sandbox_init_cmd=_SETUP_COMMON_CMD,
         sandbox_start_cmd=_START_REACT_CMD,
         prompt="""
@@ -252,7 +252,7 @@ export default function App() {
     StackPack(
         title="Vue",
         description="A Vue 3 app with TypeScript and Vite. Best for starting from scratch with minimal components.",
-        from_registry="TODO_VUE_VANILLA_IMAGE",  # TODO: Add actual image path after building
+        from_registry="ghcr.io/johngrahn/openpromptstudio/vue-vanilla:latest",
         sandbox_init_cmd=_SETUP_COMMON_CMD,
         sandbox_start_cmd=_START_VUE_CMD,
         prompt="""

@@ -25,6 +25,7 @@ class User(Base):
     user_type = Column(String, default=UserType.USER)
     team_memberships = relationship("TeamMember", back_populates="user")
     chats = relationship("Chat", back_populates="user")
+    projects = relationship("Project", back_populates="owner", foreign_keys="Project.user_id")
 
 class Team(Base):
     __tablename__ = "teams"
@@ -64,7 +65,11 @@ class Project(Base):
     modal_never_cleanup = Column(Boolean, default=False)
     sandbox_id = Column(String, nullable=True)
     team_id = Column(Integer, ForeignKey("teams.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))
+    stack_id = Column(Integer, ForeignKey("stacks.id"))
     chats = relationship("Chat", back_populates="project")
+    owner = relationship("User", foreign_keys=[user_id], back_populates="projects")
+    stack = relationship("Stack", back_populates="projects")
 
 class Chat(Base):
     __tablename__ = "chats"
@@ -93,12 +98,15 @@ class Stack(Base):
     pack_hash = Column(String)
     setup_time_seconds = Column(Integer)
     prepared_sandboxes = relationship("PreparedSandbox", back_populates="stack")
+    projects = relationship("Project", back_populates="stack")
 
 class PreparedSandbox(Base):
     __tablename__ = "prepared_sandboxes"
     id = Column(Integer, primary_key=True, index=True)
     created_at = Column(DateTime)
     pack_hash = Column(String)
+    modal_sandbox_id = Column(String)
+    modal_volume_label = Column(String)
     stack_id = Column(Integer, ForeignKey("stacks.id"))
     stack = relationship("Stack", back_populates="prepared_sandboxes")
 
